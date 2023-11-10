@@ -35,6 +35,9 @@ class FrameListener(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
+        # Create velocity publishers for robot joints (waist, shoulder, elbow, wrist)  
+        self.publisher_vel = self.create_publisher( Twist, 'end_eff_vel', 1)
+
         # Call on_timer function on a set interval
         timer_period = 0.1
         self.timer = self.create_timer(timer_period, self.on_timer)
