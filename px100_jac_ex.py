@@ -66,6 +66,31 @@ class FrameListener(Node):
             self.get_logger().info(f'Could not transform {to_frame_rel} to {from_frame_rel}: {ex}')
         
         return
+    
+    def quaternion_to_rotation_matrix(self, q0, q1, q2, q3):
+        """
+        Convert a quaternion into a rotation matrix.
+
+        Parameters:
+        q0, q1, q2, q3 - the components of the quaternion
+        """
+
+        # Normalize the quaternion to ensure it's a unit quaternion
+        norm = np.sqrt(q0**2 + q1**2 + q2**2 + q3**2)
+        q0, q1, q2, q3 = q0 / norm, q1 / norm, q2 / norm, q3 / norm
+
+        # Calculate the rotation matrix elements
+        rotation_matrix = np.array([
+            [1 - 2*(q2**2 + q3**2), 2*(q1*q2 - q3*q0), 2*(q1*q3 + q2*q0)],
+            [2*(q1*q2 + q3*q0), 1 - 2*(q1**2 + q3**2), 2*(q2*q3 - q1*q0)],
+            [2*(q1*q3 - q2*q0), 2*(q2*q3 + q1*q0), 1 - 2*(q1**2 + q2**2)]
+        ])
+
+        # Create a 4x4 homogeneous transformation matrix with zero translational elements
+        homogeneous_matrix = np.eye(4)
+        homogeneous_matrix[:3, :3] = rotation_matrix
+
+        return homogeneous_matrix
 
 
 def main(args=None):
