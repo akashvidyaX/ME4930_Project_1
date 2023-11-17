@@ -63,12 +63,15 @@ class FrameListener(Node):
 
         # Define your jacobian matrix which is dependent on joint positions (angles)
         # all zero elements of the matrix should be calculated and entered in this matrix as a function of joint angles
-        self.J = np.array([[0.0,       -np.sin(self.angles[0]),                                                            0.0,                                 0.0],
-                           [0.0,        np.cos(self.angles[0]),                                                            1.0,                                 1.0],
-                           [1.0,                           0.0,                                                            0.0,                                 0.0],
-                           [0.0, -89.45*np.cos(self.angles[0]), 35.0*np.sin(self.angles[1])-100.0*np.cos(self.angles[1])-89.45, 100.0*np.sin(self.angles[2])-189.45],
-                           [0.0, -89.45*np.sin(self.angles[0]),                                                            0.0,                                 0.0],
-                           [0.0,                           0.0,       35.0*np.cos(self.angles[1])+100.0*np.sin(self.angles[1]),   100.0*np.cos(self.angles[2])+35.0]]) # Iinitial jacobian
+        self.J = np.array([[0.0,         -np.sin(self.angles[0]),                                                             0.0,                                0.0],
+                           [0.0,          np.cos(self.angles[0]),                                                             1.0,                                1.0],
+                           [1.0,                             0.0,                                                             0.0,                                0.0],
+                           [0.0, -0.08945*np.cos(self.angles[0]), 0.035*np.sin(self.angles[1])-0.1*np.cos(self.angles[1])-0.08945, 0.1*np.sin(self.angles[2])-0.18945],
+                           [0.0, -0.08945*np.sin(self.angles[0]),                                                             0.0,                                0.0],
+                           [0.0,                             0.0,         0.035*np.cos(self.angles[1])+0.1*np.sin(self.angles[1]),   0.1*np.cos(self.angles[2])+0.035]]) # Iinitial jacobian
+        
+        # Counter for conductor iterations
+        self.counter = 0
 
 
     def on_timer(self):
@@ -123,30 +126,51 @@ class FrameListener(Node):
         self.publisher_vel.publish(vel_msg)
 
         # Publish velocity commands
-        t = trans.header.stamp.sec  # Time stamp in seconds
+        t = trans.header.stamp.sec + (trans.header.stamp.nanosec / 1e9)
         a_msg = JointGroupCommand() # Message type: JointGroupCommand
         a_msg.name = 'arm'
 
+        a_msg.cmd = [0.0, 0.0, 0.0, 0.0]
+        
         # Robot motion commands
-        if t-self.ti <= 1:      # Stretch the arm a bit
-            a_msg.cmd = [0.0, 1.0, -1.0, 0.0] # Initial velocity (rad/sec.)
-        elif t-self.ti > 1 and t-self.ti <= 3:      # Freeze
-            a_msg.cmd = [0.0, 0.0, 0.0, 0.0] # Initial velocity (rad/sec.)
-        elif t-self.ti > 3 and t-self.ti <= 10:     # Dance --> Feel free to design your own dance moves
-            a_msg.cmd = [0.3, 0.0, sin(2*pi*(self.get_clock().now().nanoseconds / 1e9)), 0.0] # Initial velocity (rad/sec.)
+        if t-self.ti <= 1:                              # Stretch the arm a bit
+            a_msg.cmd = [0.0, 1.0, -1.0, 0.0]
+        elif t-self.ti > 1 and t-self.ti <= 3:          # Freeze
+            a_msg.cmd = [0.0, 0.0, 0.0, 0.0]
+        elif t-self.ti > 3 and t-self.ti <= 4.165:      # Beat 1 ---> Move down
+            a_msg.cmd = [0.0, 0.0, 0.75, -0.6]
+        elif t-self.ti > 4.165 and t-self.ti <= 5.330:  # Beat 2 ---> Move up-right
+            a_msg.cmd = [-0.75, 0.0, -0.5, 0.0]
+        elif t-self.ti > 5.330 and t-self.ti <= 6.495:     # Beat 3 ---> Move left
+            a_msg.cmd = [1.5, 0.0, 0.0, 0.0]
+        elif t-self.ti > 6.495 and t-self.ti <= 7.660:     # Beat 4 ---> Move up-right
+            a_msg.cmd = [-0.75, 0.0, -0.5, 0.0]
         else:       # Freeze again
-            a_msg.cmd = [0.0, 0.0, 0.0, 0.0] # Initial velocity (rad/sec.)
+            if self.counter <= 500:
+                current_time = ((t-self.ti)-7.660)%4.660
+                if current_time <= 1.165:
+                    a_msg.cmd = [0.0, 0.0, 0.95, 0.0]
+                elif current_time <= 2.330:
+                    a_msg.cmd = [-0.75, 0.0, -0.5, 0.0]
+                elif current_time <= 3.495:
+                    a_msg.cmd = [1.5, 0.0, 0.0, 0.0]
+                else:
+                    a_msg.cmd = [-0.75, 0.0, -0.5, 0.0]
+                self.counter += 1
+            else:
+                a_msg.cmd = [0.0, 0.0, 0.0, 0.0]
+            
 
         # Publish velocity commands
         self.a_pub.publish(a_msg)
 
         # Compute twist using jacobian
-        self.J = np.array([[0.0,       -np.sin(self.angles[0]),                                                            0.0,                                 0.0],
-                           [0.0,        np.cos(self.angles[0]),                                                            1.0,                                 1.0],
-                           [1.0,                           0.0,                                                            0.0,                                 0.0],
-                           [0.0, -89.45*np.cos(self.angles[0]), 35.0*np.sin(self.angles[1])-100.0*np.cos(self.angles[1])-89.45, 100.0*np.sin(self.angles[2])-189.45],
-                           [0.0, -89.45*np.sin(self.angles[0]),                                                            0.0,                                 0.0],
-                           [0.0,                           0.0,       35.0*np.cos(self.angles[1])+100.0*np.sin(self.angles[1]),   100.0*np.cos(self.angles[2])+35.0]]) 
+        self.J = np.array([[0.0,         -np.sin(self.angles[0]),                                                             0.0,                                0.0],
+                           [0.0,          np.cos(self.angles[0]),                                                             1.0,                                1.0],
+                           [1.0,                             0.0,                                                             0.0,                                0.0],
+                           [0.0, -0.08945*np.cos(self.angles[0]), 0.035*np.sin(self.angles[1])-0.1*np.cos(self.angles[1])-0.08945, 0.1*np.sin(self.angles[2])-0.18945],
+                           [0.0, -0.08945*np.sin(self.angles[0]),                                                             0.0,                                0.0],
+                           [0.0,                             0.0,         0.035*np.cos(self.angles[1])+0.1*np.sin(self.angles[1]),   0.1*np.cos(self.angles[2])+0.035]])
         
         vel_from_jac = self.J @ np.array([[a_msg.cmd[0]],
                                           [a_msg.cmd[1]],
@@ -195,7 +219,7 @@ class FrameListener(Node):
 
 
 def main(args=None):
-    # Initialize the rclpy library
+    # Initialize the rclpy library100
     rclpy.init(args=args)
   
     # Create the node
