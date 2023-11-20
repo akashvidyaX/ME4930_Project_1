@@ -2,13 +2,13 @@
 clear; clc
 
 % Create symbolic variables
-syms t1(t) t2(t) t4(t) t3(t) %H1 H2 L1 L2;
+syms t1(t) t2(t) t4(t) t3(t); %H1 H2 L1 L2;
 
 % Define known variables
-H1 = 89.45;
-H2 = 100;
-L1 = 35;
-L2 = 100;
+H1 = 0.08945;
+H2 = 0.100;
+L1 = 0.035;
+L2 = 0.100;
 
 % Solve for the Jacobian of joint 1
 sw1  = [0; 0; 1];
@@ -85,5 +85,5 @@ J = vpa(J)
 q = [t1; t2; t3; t4];
 q_dot = simplify(diff(q, t));
 
-disp("Second solution of Vs:")
-Vs2 = J * q_dot
+%disp("Second solution of Vs:")
+Vs2 = J * q_dot;
