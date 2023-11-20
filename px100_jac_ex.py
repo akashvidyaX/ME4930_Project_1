@@ -146,7 +146,7 @@ class FrameListener(Node):
         elif t-self.ti > 6.495 and t-self.ti <= 7.660:     # Beat 4 ---> Move up-right
             a_msg.cmd = [-0.75, 0.0, -0.5, 0.0]
         else:       # Freeze again
-            if self.counter <= 500:
+            if self.counter <= 200:
                 current_time = ((t-self.ti)-7.660)%4.660
                 if current_time <= 1.165:
                     a_msg.cmd = [0.0, 0.0, 0.95, 0.0]
